@@ -90,6 +90,7 @@ Algorithms
 Dependencies
 ============
  * libcurl http://curl.haxx.se/libcurl/
+ * libgmp http://gmplib.org/
  * jansson http://www.digip.org/jansson/ (jansson source is included in-tree)
  * openssl libcrypto https://www.openssl.org/
  * pthreads

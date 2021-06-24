@@ -105,6 +105,7 @@ enum algos {
 	ALGO_LYRA2,       /* Lyra2RE */
 	ALGO_LYRA2REV2,   /* Lyra2REv2 */
 	ALGO_LYRA2V3,     /* Lyra2REv3 (Vertcoin) */
+	ALGO_M7M,         /* M7M Magicoin */
 	ALGO_MYR_GR,      /* Myriad Groestl */
 	ALGO_NIST5,       /* Nist5 */
 	ALGO_PENTABLAKE,  /* Pentablake */
@@ -177,6 +178,7 @@ static const char *algo_names[] = {
 	"lyra2re",
 	"lyra2rev2",
 	"lyra2v3",
+	"m7m",
 	"myr-gr",
 	"nist5",
 	"pentablake",
@@ -348,6 +350,7 @@ Options:\n\
                           lyra2v3      Lyra2REv3 (Vertcoin)\n\
                           myr-gr       Myriad-Groestl\n\
                           neoscrypt    NeoScrypt(128, 2, 1)\n\
+                          m7m          M7M (magicoin)\n\
                           nist5        Nist5\n\
                           pluck        Pluck:128 (Supcoin)\n\
                           pentablake   Pentablake\n\
@@ -696,6 +699,11 @@ static bool work_decode(const json_t *val, struct work *work)
 		else for (i = 20; i < 36; i++) {
 			if (work->data[i]) { use_roots = true; break; }
 		}
+	} else if (opt_algo != ALGO_M7M) {
+		for (i = 0; i < 32; i++)
+			work->data[i] = le32dec(work->data + i);
+		for (i = 0; i < ARRAY_SIZE(work->target); i++)
+			work->target[i] = le32dec(work->target + i);
 	}
 
 	return true;
@@ -1181,6 +1189,7 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 				le32enc(&nonce, work->data[27]);
 				break;
 			case ALGO_DROP:
+			case ALGO_M7M:
 			case ALGO_NEOSCRYPT:
 			case ALGO_ZR5:
 				/* reversed */
@@ -1343,8 +1352,13 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 		if (opt_algo == ALGO_DECRED) adata_sz = 180 / 4; // dont touch the end tag
 
 		/* build hex string */
-		for (i = 0; i < adata_sz; i++)
-			le32enc(&work->data[i], work->data[i]);
+		if (opt_algo == ALGO_M7M) {
+			for (i = 0; i < 32; i++)
+				be32enc(&work->data[i], work->data[i]);
+		}
+		else
+			for (i = 0; i < adata_sz; i++)
+				le32enc(&work->data[i], work->data[i]);
 
 		gw_str = abin2hex((uchar*)work->data, data_size);
 
@@ -2225,6 +2239,7 @@ static void *miner_thread(void *userdata)
 			case ALGO_FRESH:
 			case ALGO_GEEK:
 			case ALGO_GROESTL:
+			case ALGO_M7M:
 			case ALGO_MYR_GR:
 			case ALGO_SIB:
 			case ALGO_VELTOR:
@@ -2354,6 +2369,10 @@ static void *miner_thread(void *userdata)
 			break;
 		case ALGO_LYRA2V3:
 			rc = scanhash_lyra2v3(thr_id, &work, max_nonce, &hashes_done);
+			break;
+		case ALGO_M7M:
+			rc = scanhash_m7m_hash(thr_id, work.data, work.target,
+			                      max_nonce, &hashes_done);
 			break;
 		case ALGO_MYR_GR:
 			rc = scanhash_myriad(thr_id, &work, max_nonce, &hashes_done);
