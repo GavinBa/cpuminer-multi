@@ -2506,7 +2506,7 @@ static void *miner_thread(void *userdata)
 				applog(LOG_INFO, "CPU #%d: %.2f H/s", thr_id, thr_hashrates[thr_id]);
 				break;
 			default:
-				sprintf(s, thr_hashrates[thr_id] >= 1e6 ? "%.0f" : "%.2f",
+				sprintf(s, thr_hashrates[thr_id] >= 1e6 ? "%.0f" : "%.8f",
 						thr_hashrates[thr_id] / 1e3);
 				applog(LOG_INFO, "CPU #%d: %s kH/s", thr_id, s);
 				break;
