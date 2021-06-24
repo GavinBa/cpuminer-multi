@@ -46,7 +46,7 @@ make -j $NPROC
 
 if [ $? != 0 ]; then
 	echo "Compilation failed (make=$?)".
-	echo "Common causes: missing libjansson-dev libcurl4-openssl-dev libssl-dev"
+	echo "Common causes: missing libjansson-dev libcurl4-openssl-dev libssl-dev libgmp-dev"
 	echo "If you pulled updates into this directory, remove configure and try again."
 	exit 1
 fi
