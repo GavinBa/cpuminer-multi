@@ -657,11 +657,6 @@ static bool work_decode(const json_t *val, struct work *work)
 		goto err_out;
 	}
 
-/*	if (opt_algo == ALGO_M7M) {
-		for (i = 0; i < 32; i++)
-			be32enc(work->data + i, work->data[i]);
-	}
-	else {*/
 	if (opt_algo != ALGO_M7M) {
 		for (i = 0; i < adata_sz; i++)
 			work->data[i] = le32dec(work->data + i);
