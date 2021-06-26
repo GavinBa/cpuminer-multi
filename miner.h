@@ -223,6 +223,8 @@ int scanhash_luffa(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *
 int scanhash_lyra2(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done);
 int scanhash_lyra2rev2(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done);
 int scanhash_lyra2v3(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done);
+int scanhash_m7m_hash(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
+    uint64_t max_nonce, unsigned long *hashes_done);
 int scanhash_myriad(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done);
 int scanhash_neoscrypt(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done, uint32_t profile);
 int scanhash_nist5(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done);
