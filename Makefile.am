@@ -54,6 +54,7 @@ cpuminer_SOURCES = \
   crypto/c_skein.c \
   crypto/hash.c \
   crypto/aesb.c \
+  crypto/magimath.cpp \
   lyra2/Lyra2.c lyra2/Sponge.c \
   yescrypt/yescrypt-common.c yescrypt/yescrypt-best.c \
   yescrypt/sha256_Y.c \
@@ -80,8 +81,8 @@ cpuminer_SOURCES = \
   algo/lyra2re.c \
   algo/lyra2rev2.c \
   algo/lyra2v3.c \
-  algo/m7mhash.c \
   algo/myr-groestl.c \
+  algo/m7m.c \
   algo/keccak.c \
   algo/pentablake.c \
   algo/phi1612.c \
@@ -142,7 +143,7 @@ if HAVE_WINDOWS
 endif
 
 cpuminer_LDFLAGS	= @LDFLAGS@
-cpuminer_LDADD	= @LIBCURL@ @JANSSON_LIBS@ @PTHREAD_LIBS@ @WS2_LIBS@ -lgmp -lcurl -lssl -lcrypto
+cpuminer_LDADD	= @LIBCURL@ @JANSSON_LIBS@ @PTHREAD_LIBS@ @WS2_LIBS@ -lgmp
 cpuminer_CPPFLAGS = @LIBCURL_CPPFLAGS@ $(ALL_INCLUDES)
 cpuminer_CFLAGS   = -Wno-pointer-sign -Wno-pointer-to-int-cast $(disable_flags)
 

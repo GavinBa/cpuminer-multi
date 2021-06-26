@@ -657,11 +657,12 @@ static bool work_decode(const json_t *val, struct work *work)
 		goto err_out;
 	}
 
-	if (opt_algo == ALGO_M7M) {
+/*	if (opt_algo == ALGO_M7M) {
 		for (i = 0; i < 32; i++)
 			be32enc(work->data + i, work->data[i]);
 	}
-	else {
+	else {*/
+	if (opt_algo != ALGO_M7M) {
 		for (i = 0; i < adata_sz; i++)
 			work->data[i] = le32dec(work->data + i);
 		for (i = 0; i < atarget_sz; i++)
@@ -1190,7 +1191,6 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 				le32enc(&nonce, work->data[27]);
 				break;
 			case ALGO_DROP:
-			case ALGO_M7M:
 			case ALGO_NEOSCRYPT:
 			case ALGO_ZR5:
 				/* reversed */
@@ -1201,6 +1201,12 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 				/* reversed */
 				be32enc(&ntime, work->data[10]);
 				be32enc(&nonce, work->data[8]);
+				break;
+			case ALGO_M7M:
+				le32enc(&ntime, work->data[17]);
+				le32enc(&nonce, work->data[19]);
+				be32enc(&ntime, work->data[17]);
+				be32enc(&nonce, work->data[19]);
 				break;
 			default:
 				le32enc(&ntime, work->data[17]);
@@ -1353,14 +1359,9 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 		if (opt_algo == ALGO_DECRED) adata_sz = 180 / 4; // dont touch the end tag
 
 		/* build hex string */
-		if (opt_algo == ALGO_M7M) {
-			for (i = 0; i < 32; i++)
-				be32enc(work->data + i, work->data[i]);
-		}
-		else {
+		if (opt_algo != ALGO_M7M)
 			for (i = 0; i < adata_sz; i++)
 				le32enc(&work->data[i], work->data[i]);
-		}
 
 		gw_str = abin2hex((uchar*)work->data, data_size);
 
@@ -1771,7 +1772,6 @@ static void stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 			case ALGO_GROESTL:
 			case ALGO_KECCAK:
 			case ALGO_BLAKECOIN:
-			case ALGO_M7M:
 				SHA256(sctx->job.coinbase, (int) sctx->job.coinbase_size, merkle_root);
 				break;
 			case ALGO_SIA:
@@ -1834,6 +1834,12 @@ static void stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 			for (i = 0; i < 16; i++)
 				work->data[20 + i] = ((uint32_t*)sctx->job.extra)[i];
 			//applog_hex(&work->data[0], 144);
+		}
+		else if (opt_algo == ALGO_M7M) {
+			work->data[17] = le32dec(sctx->job.ntime);
+			work->data[18] = le32dec(sctx->job.nbits);
+			for (i = 0; i < 32; i++)
+				be32enc(work->data + i, work->data[i]);
 		} else if (opt_algo == ALGO_SIA) {
 			for (i = 0; i < 8; i++) // prevhash
 				work->data[i] = ((uint32_t*)sctx->job.prevhash)[7-i];
@@ -1861,10 +1867,7 @@ static void stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 			for (i = 0; i <= 18; i++)
 				work->data[i] = swab32(work->data[i]);
 		}
-		else if (opt_algo == ALGO_M7M) {
-			for (i = 0; i < 32; i++)
-	            be32enc(work->data + i, work->data[i]);
-		}
+
 		pthread_mutex_unlock(&sctx->work_lock);
 
 		if (opt_debug && opt_algo != ALGO_DECRED && opt_algo != ALGO_SIA) {
@@ -1875,8 +1878,8 @@ static void stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 		}
 
 		switch (opt_algo) {
-			case ALGO_M7M:
 			case ALGO_DROP:
+			case ALGO_M7M:
 			case ALGO_JHA:
 			case ALGO_SCRYPT:
 			case ALGO_SCRYPTJANE:
@@ -2246,7 +2249,6 @@ static void *miner_thread(void *userdata)
 			case ALGO_FRESH:
 			case ALGO_GEEK:
 			case ALGO_GROESTL:
-			case ALGO_M7M:
 			case ALGO_MYR_GR:
 			case ALGO_SIB:
 			case ALGO_VELTOR:
@@ -2258,6 +2260,7 @@ static void *miner_thread(void *userdata)
 				max64 = 0x3ffff;
 				break;
 			case ALGO_LBRY:
+			case ALGO_M7M:
 			case ALGO_SONOA:
 			case ALGO_TRIBUS:
 			case ALGO_X15:
@@ -2377,18 +2380,15 @@ static void *miner_thread(void *userdata)
 		case ALGO_LYRA2V3:
 			rc = scanhash_lyra2v3(thr_id, &work, max_nonce, &hashes_done);
 			break;
-		case ALGO_M7M:
-			rc = /*( fcpu_dec ? scanhash_m7m_hash_t(thr_id, work.data, work.target,
-												max_nonce, &hashes_done, cpu_dec_time) :*/
-							  scanhash_m7m_hash(thr_id, work.data, work.target,
-									  	  	  max_nonce, &hashes_done);
-			break;
 		case ALGO_MYR_GR:
 			rc = scanhash_myriad(thr_id, &work, max_nonce, &hashes_done);
 			break;
 		case ALGO_NEOSCRYPT:
 			rc = scanhash_neoscrypt(thr_id, &work, max_nonce, &hashes_done,
 				0x80000020 | (opt_nfactor << 8));
+			break;
+		case ALGO_M7M:
+			rc = scanhash_m7m(thr_id, &work, max_nonce, &hashes_done);
 			break;
 		case ALGO_NIST5:
 			rc = scanhash_nist5(thr_id, &work, max_nonce, &hashes_done);
